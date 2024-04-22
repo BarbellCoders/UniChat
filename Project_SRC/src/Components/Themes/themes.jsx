@@ -49,6 +49,7 @@ const darktheme = createTheme({
       ButtonColor: "#4C335C",
       ButtonHover: "#9182b6",
       whites: "#FCFCFC",
+      blue: "#1A1D1F",
       shadowGlow: "4px 4px 4px 4px #4C335C",
     },
   },
