@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Discord from "../discord/discord.jsx";
 import React from "react";
 import SideBar from "../SideBar/sidebar.jsx";
-import Loader from "../Loading/Loader.jsx";
+import Loader from "../Loading/loader.jsx";
 import ThemeContext from "../Contexts/themeContext.jsx";
 import { darktheme } from "../Themes/themes.jsx";
 import { useState, useContext, useEffect } from "react";
