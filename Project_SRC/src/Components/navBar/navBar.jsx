@@ -26,9 +26,9 @@ import {
 } from "@mui/material";
 import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
-import ThemeContext from "../Contexts/themeContext";
+import ThemeContext from "../Contexts/themeContext"; 
 import AuthContext from "../Contexts/authContext";
-import ChatGPTBox from "../ChatGPT/ChatGPTBox";
+import ChatGPTBox from "../ChatGPT/chatGPTBox";
 
 const StyledButton = styled(Button)(({ theme }) => ({
   width: "135px",
