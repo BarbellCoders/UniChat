@@ -104,7 +104,7 @@ const SideBar = ({ projects }) => {
     openPicker({
       clientId:
         "390698529758-97a4j6gnlmlv6mrmjlerb6l4qejt8r7s.apps.googleusercontent.com",
-      developerKey: "AIzaSyCUEwSsinL08-FGU48bz4mt8lXMMwKvIcQ",
+      developerKey: "AIzaSyAuUFSlygnKK7FU3WPGs0V-GecUd2oRMjc",
       viewId: "DOCS",
       showUploadView: true,
       token: apiToken,
