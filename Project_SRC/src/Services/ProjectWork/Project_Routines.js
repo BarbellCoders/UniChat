@@ -1,10 +1,16 @@
-export async function addProject(databasename, projectName, projectDescription, studentIds, nativeChat, discordServerId) 
-{
+export async function addProject(
+  databasename,
+  projectName,
+  projectDescription,
+  studentIds,
+  nativeChat,
+  discordServerId
+) {
   try {
     const response = await fetch("/api/students/projects/addProjects", {
       method: "PUT",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         databasename,
@@ -12,8 +18,8 @@ export async function addProject(databasename, projectName, projectDescription, 
         projectDescription,
         studentIds,
         nativeChat,
-        discordServerId
-      })
+        discordServerId,
+      }),
     });
     const data = await response.json();
     return data;
@@ -21,23 +27,70 @@ export async function addProject(databasename, projectName, projectDescription, 
     console.error("Error adding project:", error);
     return {
       status: 500,
-      message: error
+      message: error,
     };
   }
 }
 
 export const fetchStudentProjects = async (databasename, studentId) => {
-    try {
-        const response = await fetch(`/api/students/projects/getStudentProjects?databasename=${databasename}&studentId=${studentId}`, {
-            method: "GET",
-            headers: {
-            "Content-Type": "application/json"
-            },
-        });
-        const data = await response.json();
-        return data.projects;
-    } catch (error) {
-      console.error("Error fetching student projects:", error);
-      return [];
-    }
-  };
+  try {
+    const response = await fetch(
+      `/api/students/projects/getStudentProjects?databasename=${databasename}&studentId=${studentId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await response.json();
+    return data.projects;
+  } catch (error) {
+    console.error("Error fetching student projects:", error);
+    return [];
+  }
+};
+
+export const getProjectDetails = async (projectId) => {
+  try {
+    const response = await fetch(
+      `/api/students/projects/getProjectDetails?projectId=${projectId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error validating project:", error);
+    return {
+      status: 500,
+      message: error,
+    };
+  }
+};
+
+export const joinProject = async (studentId, projectId) => {
+  try {
+    const response = await fetch(
+      `/api/students/projects/joinProject?studentId=${studentId}&projectId=${projectId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error joining project:", error);
+    return {
+      status: 500,
+      message: error,
+    };
+  }
+};

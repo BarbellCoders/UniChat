@@ -1,7 +1,7 @@
 import React from "react";
 import Divider from "@mui/material/Divider";
 import { ThemeProvider } from "@mui/system";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import ThemeContext from "../Contexts/themeContext";
 import {
   Card,
@@ -12,9 +12,38 @@ import {
   Slide,
   Grow,
 } from "@mui/material";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import Box from "@mui/material/Box";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import FileCopyOutlinedIcon from "@mui/icons-material/FileCopyOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 export default function Discord({ props }) {
   const { theme } = useContext(ThemeContext);
+
+  const [openMore, setOpenMore] = useState(false);
+  const [selectedProject, setSelectedProject] = useState({});
+
+  const handleClickOpenMore = (event) => {
+    setOpenMore(true);
+  };
+
+  const handleCloseMore = () => {
+    setOpenMore(false);
+  };
+
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = (projectId) => {
+    navigator.clipboard.writeText(projectId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -85,7 +114,7 @@ export default function Discord({ props }) {
               }}
             />
             {props && (
-              <Grid container spacing={3} sx={{ p: 2,cursor: "pointer", }}>
+              <Grid container spacing={3} sx={{ p: 2, cursor: "pointer" }}>
                 {props[1].map((project) => (
                   <Grow in={true} timeout={1500}>
                     <Grid item xs={12} sm={6} md={4}>
@@ -106,34 +135,106 @@ export default function Discord({ props }) {
                           display: "flex",
                           cursor: "pointer",
                         }}
-                        onClick={() => {
-                          console.log(project);
-                          localStorage.setItem('projectID', project._id)
-                          if (project.nativeChat) {
-                            localStorage.setItem("chatPlatform", "native");
-                            localStorage.setItem("projectName", project.projectName);
-                          } else {
-                            localStorage.setItem("chatPlatform", "discord");
-                            localStorage.setItem(
-                              "discordServerId",
-                              project.discordServerId
-                            );
-                          }
-                        }}
                       >
-                        <CardContent sx={{
-                          cursor: "pointer",
-                        }}>
-                          <Typography
-                            style={{
-                              fontSize: "16px",
-                              fontFamily: '"Kode Mono", monospace',
-                              cursor: "pointer",
-                            }}
-                          >
-                            {project.projectName}
-                          </Typography>
+                        <CardContent sx={{ cursor: "pointer" }}>
+                          <Box display="flex" alignItems="center">
+                            <Typography
+                              sx={{
+                                fontSize: "16px",
+                                fontFamily: '"Kode Mono", monospace',
+                                mr: 1,
+                              }}
+                              onClick={() => {
+                                console.log(project);
+                                localStorage.setItem("projectID", project._id);
+                                if (project.nativeChat) {
+                                  localStorage.setItem(
+                                    "chatPlatform",
+                                    "native"
+                                  );
+                                  localStorage.setItem(
+                                    "projectName",
+                                    project.projectName
+                                  );
+                                } else {
+                                  localStorage.setItem(
+                                    "chatPlatform",
+                                    "discord"
+                                  );
+                                  localStorage.setItem(
+                                    "discordServerId",
+                                    project.discordServerId
+                                  );
+                                }
+                              }}
+                            >
+                              {project.projectName}
+                            </Typography>
+                            <Tooltip title="More">
+                              <IconButton
+                                onClick={() => {
+                                  setSelectedProject(project);
+                                  handleClickOpenMore();
+                                }}
+                              >
+                                <MoreHorizIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
                         </CardContent>
+                        <Dialog open={openMore} onClose={handleCloseMore}>
+                          <DialogTitle
+                            sx={{ fontFamily: '"Kode Mono", monospace' }}
+                          >
+                            Project Details
+                          </DialogTitle>
+                          <DialogContent>
+                            <Typography
+                              sx={{ fontFamily: '"Kode Mono", monospace' }}
+                            >
+                              Name: {selectedProject.projectName}
+                            </Typography>
+                            <Box display="flex" alignItems="center">
+                              <Typography
+                                sx={{ fontFamily: '"Kode Mono", monospace' }}
+                              >
+                                ID: {selectedProject._id}
+                              </Typography>
+                              <IconButton
+                                onClick={() => handleCopy(selectedProject._id)}
+                                sx={{
+                                  ml: 1,
+                                  p: 0,
+                                  "&:hover": {
+                                    backgroundColor: "transparent",
+                                  },
+                                }}
+                              >
+                                {copied ? (
+                                  <CheckCircleOutlineIcon fontSize="small" />
+                                ) : (
+                                  <FileCopyOutlinedIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                mt: 1,
+                              }}
+                            >
+                              <InfoOutlinedIcon
+                                fontSize="small"
+                                sx={{ mr: 0.5 }}
+                              />
+                              Copy Project ID and send it to your friends for
+                              joining
+                            </Typography>
+                          </DialogContent>
+                        </Dialog>
                       </Card>
                     </Grid>
                   </Grow>

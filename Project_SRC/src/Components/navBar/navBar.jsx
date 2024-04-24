@@ -6,6 +6,12 @@ import chatGPTLogo from "../../Assets/ChatGPT_icon.png";
 import Logout from "@mui/icons-material/Logout";
 import { logoutUser } from "../../Services/User";
 import Settings from "@mui/icons-material/Settings";
+import AddIcon from "@mui/icons-material/Add";
+import PolylineIcon from "@mui/icons-material/Polyline";
+import SpokeIcon from "@mui/icons-material/Spoke";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   IconButton,
   Badge,
@@ -24,11 +30,21 @@ import {
   Divider,
   ListItemIcon,
 } from "@mui/material";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogActions from "@mui/material/DialogActions";
+import TextField from "@mui/material/TextField";
 import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import ThemeContext from "../Contexts/themeContext";
 import AuthContext from "../Contexts/authContext";
 import ChatGPTBox from "../ChatGPT/chatGPTBox";
+import {
+  getProjectDetails,
+  joinProject,
+} from "../../Services/ProjectWork/Project_Routines";
 
 const StyledButton = styled(Button)(({ theme }) => ({
   width: "135px",
@@ -104,6 +120,59 @@ export default function NavBar() {
   const router = new useRouter();
   const [openChatGPT, setOpenChatGPT] = useState(false);
 
+  const [openJoinProjectDialog, setOpenJoinProjectDialog] = useState(false);
+  const [requestedProjectID, setRequestedProjectID] = useState("");
+  const [isRequestedProjectValid, setIsRequestedProjectValid] = useState(false);
+  const [requestedProject, setRequestedProject] = useState({});
+  const [loadingProject, setLoadingProject] = useState(false);
+  const [findClicked, setFindClicked] = useState(false);
+  const [projectJoinStatus, setProjectJoinStatus] = useState("initial");
+  const [joiningProject, setJoiningProject] = useState(false);
+
+  const handleFindProject = async (projectId) => {
+    setLoadingProject(true);
+    setFindClicked(true);
+    console.log(`Joining project with ID: ${projectId}`);
+    const projectDetails = await getProjectDetails(projectId);
+    if (projectDetails.isValidProjectID) {
+      console.log("Project details: ", projectDetails);
+      setIsRequestedProjectValid(true);
+      setRequestedProject(projectDetails.project);
+    } else {
+      console.log("Project not found");
+      setIsRequestedProjectValid(false);
+    }
+    setLoadingProject(false);
+  };
+
+  const handleJoinProject = async () => {
+    setJoiningProject(true);
+    const result = await joinProject(
+      localStorage.getItem("studentId"),
+      requestedProjectID
+    );
+    if (result.status === 200) {
+      setProjectJoinStatus("success");
+      handleCloseJoinProjectDialog();
+    } else {
+      setProjectJoinStatus("failure");
+    }
+    setJoiningProject(false);
+  };
+
+  const handleOpenJoinProjectDialog = () => {
+    setOpenJoinProjectDialog(true);
+  };
+
+  const handleCloseJoinProjectDialog = () => {
+    setOpenJoinProjectDialog(false);
+    setRequestedProjectID("");
+    setIsRequestedProjectValid(false);
+    setLoadingProject(false);
+    setRequestedProject({});
+    setFindClicked(false);
+  };
+
   const toggleChatGPT = () => {
     setOpenChatGPT(!openChatGPT);
   };
@@ -112,13 +181,21 @@ export default function NavBar() {
     setOpenChatGPT(false);
   };
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const openProfileMenu = Boolean(anchorEl);
+  const [anchorProfileMenu, setAnchorProfileMenu] = useState(null);
   const handleClickProfile = (event) => {
-    setAnchorEl((prevAnchorEl) => (prevAnchorEl ? null : event.currentTarget));
+    setAnchorProfileMenu(event.currentTarget);
   };
   const handleCloseProfileMenu = () => {
-    setAnchorEl(null);
+    setAnchorProfileMenu(null);
+  };
+
+  const [anchorNewProjecteMenu, setAnchorNewProjectMenu] = useState(null);
+  const handleNewProjectClick = (event) => {
+    setAnchorNewProjectMenu(event.currentTarget);
+  };
+
+  const handleCloseNewProjectMenu = () => {
+    setAnchorNewProjectMenu(null);
   };
 
   const { theme } = useContext(ThemeContext);
@@ -178,9 +255,171 @@ export default function NavBar() {
               justifyContent="center"
               alignItems="center"
             >
-              <StyledButton>
-                <Typography variant="">+ Project</Typography>
+              <StyledButton
+                aria-controls="new-project-menu"
+                aria-haspopup="true"
+                onClick={handleNewProjectClick}
+              >
+                <AddIcon fontSize="small" />
+                <Typography
+                  sx={{
+                    fontFamily: theme.typography.fontFamily[0],
+                  }}
+                >
+                  Project
+                </Typography>
               </StyledButton>
+              <Menu
+                id="new-project-menu"
+                anchorEl={anchorNewProjecteMenu}
+                keepMounted
+                open={Boolean(anchorNewProjecteMenu)}
+                onClose={handleCloseNewProjectMenu}
+                transformOrigin={{ horizontal: "right", vertical: "top" }}
+                anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                sx={{ marginTop: 1 }}
+              >
+                <MenuItem onClick={handleCloseNewProjectMenu}>
+                  <Typography
+                    variant="inherit"
+                    sx={{
+                      fontFamily: theme.typography.fontFamily[0],
+                    }}
+                  >
+                    <PolylineIcon fontSize="small" sx={{ mr: 1 }} />
+                    Create a new project
+                  </Typography>
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    handleCloseNewProjectMenu();
+                    handleOpenJoinProjectDialog();
+                  }}
+                  sx={{
+                    fontFamily: theme.typography.fontFamily[0],
+                  }}
+                >
+                  <SpokeIcon fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="inherit">
+                    Join an existing project
+                  </Typography>
+                </MenuItem>
+                <Dialog
+                  open={openJoinProjectDialog}
+                  onClose={handleCloseJoinProjectDialog}
+                >
+                  <DialogTitle
+                    sx={{
+                      fontFamily: theme.typography.fontFamily[0],
+                    }}
+                  >
+                    Join a Project
+                  </DialogTitle>
+                  <DialogContent>
+                    <DialogContentText
+                      sx={{
+                        fontFamily: theme.typography.fontFamily[0],
+                      }}
+                    >
+                      Please enter the project ID:
+                    </DialogContentText>
+                    <Box display="flex" alignItems="center">
+                      <TextField
+                        autoFocus
+                        margin="dense"
+                        id="name"
+                        variant="standard"
+                        color="warning"
+                        label="Project ID"
+                        type="text"
+                        fullWidth
+                        value={requestedProjectID}
+                        onChange={(event) =>
+                          setRequestedProjectID(event.target.value)
+                        }
+                      />
+                      <Button
+                        sx={{
+                          fontFamily: theme.typography.fontFamily[0],
+                          color: theme.palette.primary.textcolor,
+                        }}
+                        disabled={
+                          requestedProjectID === "" || loadingProject === true
+                        }
+                        onClick={() => {
+                          handleFindProject(requestedProjectID);
+                          setLoadingProject(true);
+                        }}
+                      >
+                        Find
+                      </Button>
+                    </Box>
+                  </DialogContent>
+                  {isRequestedProjectValid === true && findClicked === true ? (
+                    <DialogContent>
+                      <DialogContentText
+                        sx={{
+                          fontFamily: theme.typography.fontFamily[0],
+                        }}
+                      >
+                        Project Found!
+                      </DialogContentText>
+                      <DialogContentText
+                        sx={{
+                          fontFamily: theme.typography.fontFamily[0],
+                        }}
+                      >
+                        Name: {requestedProject.projectName}
+                      </DialogContentText>
+                      <DialogContentText
+                        sx={{
+                          fontFamily: theme.typography.fontFamily[0],
+                        }}
+                      >
+                        Description: {requestedProject.projectDescription}
+                      </DialogContentText>
+                    </DialogContent>
+                  ) : findClicked === true && loadingProject === false ? (
+                    <DialogContent>
+                      <DialogContentText
+                        sx={{
+                          fontFamily: theme.typography.fontFamily[0],
+                        }}
+                      >
+                        Project not found. Please check the project ID and try
+                        again.
+                      </DialogContentText>
+                    </DialogContent>
+                  ) : null}
+                  <DialogActions>
+                    <Button
+                      onClick={handleCloseJoinProjectDialog}
+                      sx={{
+                        fontFamily: theme.typography.fontFamily[0],
+                        color: theme.palette.primary.textcolor,
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      sx={{
+                        fontFamily: theme.typography.fontFamily[0],
+                        color: theme.palette.primary.textcolor,
+                      }}
+                      onClick={() => {
+                        handleJoinProject();
+                      }}
+                      disabled={!isRequestedProjectValid}
+                    >
+                      {joiningProject ? (
+                        <CircularProgress size={24} />
+                      ) : (
+                        "Join"
+                      )}
+                    </Button>
+                  </DialogActions>
+                </Dialog>
+              </Menu>
               <StyledIconButton color="inherit" onClick={toggleChatGPT}>
                 <Image
                   src={chatGPTLogo}
@@ -208,6 +447,7 @@ export default function NavBar() {
               <StyledIconButton
                 edge="end"
                 aria-label="account of current user"
+                aria-controls="profile-menu"
                 aria-haspopup="true"
                 color="inherit"
                 onClick={handleClickProfile}
@@ -217,38 +457,14 @@ export default function NavBar() {
                 </Avatar>
               </StyledIconButton>
               <Menu
-                anchorEl={anchorEl}
-                id="account-menu"
-                open={openProfileMenu}
+                anchorEl={anchorProfileMenu}
+                open={Boolean(anchorProfileMenu)}
                 onClose={handleCloseProfileMenu}
                 onClick={handleCloseProfileMenu}
-                PaperProps={{
-                  elevation: 0,
-                  sx: {
-                    overflow: "visible",
-                    filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
-                    mt: 1.5,
-                    "& .MuiAvatar-root": {
-                      width: 32,
-                      height: 32,
-                      ml: -0.5,
-                      mr: 1,
-                    },
-                    "&::before": {
-                      content: '""',
-                      display: "block",
-                      position: "absolute",
-                      top: 0,
-                      right: 14,
-                      width: 10,
-                      height: 10,
-                      bgcolor: "background.paper",
-                      transform: "translateY(-50%) rotate(45deg)",
-                    },
-                  },
-                }}
+                id="profile-menu"
                 transformOrigin={{ horizontal: "right", vertical: "top" }}
                 anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                sx={{ marginTop: 1 }}
               >
                 <MenuItem onClick={handleCloseProfileMenu}>
                   <Avatar /> Profile
@@ -271,6 +487,30 @@ export default function NavBar() {
           </Box>
         </Toolbar>
       </AppBar>
+      {joiningProject === false && projectJoinStatus === "success" ? (
+        <Snackbar
+          open={true}
+          autoHideDuration={6000}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          onClose={() => setProjectJoinStatus("initial")}
+        >
+          <Alert severity="success" sx={{ width: "100%" }}>
+            Project Joined
+          </Alert>
+        </Snackbar>
+      ) : null}
+      {joiningProject === false && projectJoinStatus === "failure" ? (
+        <Snackbar
+          open={true}
+          autoHideDuration={6000}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          onClose={() => setProjectJoinStatus("initial")}
+        >
+          <Alert severity="error" sx={{ width: "100%" }}>
+            Failed to Join Project
+          </Alert>
+        </Snackbar>
+      ) : null}
       {openChatGPT && (
         <ChatGPTBox isOpen={openChatGPT} onClose={handleChatGPTClose} />
       )}
