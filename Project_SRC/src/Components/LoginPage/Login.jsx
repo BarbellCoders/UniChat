@@ -216,6 +216,7 @@ const Login = () => {
         localStorage.setItem("studentId", userClassification.studentId);
         localStorage.setItem("studentName", loggedInUser.displayName);
         localStorage.setItem("selectedDoc", "noDocSelected");
+        router.push("/home");
       } else if (userClassification.type === "Unregistered") {
         // First Time User
         await createUser(
@@ -232,7 +233,6 @@ const Login = () => {
         localStorage.setItem("studentName", loggedInUser.displayName);
         localStorage.setItem("selectedDoc", "noDocSelected");
       }
-      router.push("/home");
     } else {
       // No user is signed in.
       signInUser();
