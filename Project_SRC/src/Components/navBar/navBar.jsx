@@ -4,7 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import chatGPTLogo from "../../Assets/ChatGPT_icon.png";
 import Logout from "@mui/icons-material/Logout";
-import { LogoutUser } from "../../Services/User";
+import { logoutUser } from "../../Services/User";
 import Settings from "@mui/icons-material/Settings";
 import {
   IconButton,
@@ -26,7 +26,7 @@ import {
 } from "@mui/material";
 import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
-import ThemeContext from "../Contexts/themeContext"; 
+import ThemeContext from "../Contexts/themeContext";
 import AuthContext from "../Contexts/authContext";
 import ChatGPTBox from "../ChatGPT/chatGPTBox";
 
@@ -126,9 +126,9 @@ export default function NavBar() {
   const { userImage } = useContext(AuthContext);
 
   const logout = () => {
-    LogoutUser()
+    logoutUser()
       .then(() => {
-        window.location.reload();
+        router.push("/login");
       })
       .catch((error) => {
         console.log("Error logging out: ", error);
@@ -271,7 +271,9 @@ export default function NavBar() {
           </Box>
         </Toolbar>
       </AppBar>
-      {openChatGPT && <ChatGPTBox isOpen={openChatGPT} onClose={handleChatGPTClose} />}
+      {openChatGPT && (
+        <ChatGPTBox isOpen={openChatGPT} onClose={handleChatGPTClose} />
+      )}
     </ThemeProvider>
   );
 }

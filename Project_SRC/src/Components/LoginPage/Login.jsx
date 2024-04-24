@@ -26,9 +26,10 @@ import AuthContext from "../Contexts/authContext";
 import { useContext } from "react";
 import app from "../../../config";
 import {
-  ClassifyUser,
-  GetLoggedInUserDetails,
-  UpdateFirstTimeLogin,
+  classifyUser,
+  getLoggedInUserDetails,
+  updateFirstTimeLogin,
+  createUser,
 } from "../../Services/User";
 import Link from "next/link";
 import { Logout } from "faunadb";
@@ -202,11 +203,10 @@ const Login = () => {
     useContext(AuthContext);
 
   const signInWithGoogle = async () => {
-    const loggedInUser = await GetLoggedInUserDetails();
+    const loggedInUser = await getLoggedInUserDetails();
+    console.log(loggedInUser);
     if (loggedInUser) {
-      console.log(loggedInUser)
-      // User is logged in
-      const userClassification = await ClassifyUser(loggedInUser.email);
+      const userClassification = await classifyUser(loggedInUser.email);
       if (userClassification.type === "Registered") {
         // Registered User
         setIsAuthenticated(true);
@@ -215,29 +215,24 @@ const Login = () => {
         localStorage.setItem("userImage", loggedInUser.photoURL);
         localStorage.setItem("studentId", userClassification.studentId);
         localStorage.setItem("studentName", loggedInUser.displayName);
-
-        if (userClassification.isFirstTimeLogin) {
-          const response = await UpdateFirstTimeLogin(loggedInUser.email);
-          
-          //photo URL work
-          const data = await UpdatePhotoURL("universityatalbanyDB", loggedInUser.email, loggedInUser.photoURL);
-          if(data.status === 200) {
-            console.log("Photo URL updated successfully");
-          } else {
-            console.log("Error updating photo URL");
-          }
-
-          if (response.status === "Updated") {
-            setLoginFormVisible(true);
-          }
-        } else if (!userClassification.isFirstTimeLogin) {
-          router.push("/home");
-        }
+        localStorage.setItem("selectedDoc", "noDocSelected");
       } else if (userClassification.type === "Unregistered") {
-        // Unregistered/Invalid User
-        LogoutUser();
-        setInvalidUser(true);
+        // First Time User
+        await createUser(
+          loggedInUser.displayName,
+          loggedInUser.email,
+          loggedInUser.photoURL
+        );
+        setLoginFormVisible(true);
+        setIsAuthenticated(true);
+        setUserImage(loggedInUser.photoURL);
+        setStudentId(userClassification.studentId);
+        localStorage.setItem("userImage", loggedInUser.photoURL);
+        localStorage.setItem("studentId", userClassification.studentId);
+        localStorage.setItem("studentName", loggedInUser.displayName);
+        localStorage.setItem("selectedDoc", "noDocSelected");
       }
+      router.push("/home");
     } else {
       // No user is signed in.
       signInUser();

@@ -348,33 +348,6 @@ const SideBar = ({ projects }) => {
             </Stack>
           </AccordionDetails>
         </Accordion>
-
-        <ListItem>
-          <ListItemButton
-            sx={{
-              "&:hover": {
-                backgroundColor: (theme) => theme.palette.primary.hover,
-              },
-              borderRadius: 4,
-            }}
-          >
-            <ListItemIcon
-              sx={{ color: (theme) => theme.palette.primary.textcolor }}
-            >
-              <AirlineStopsOutlinedIcon
-                sx={{ color: theme.palette.primary.ButtonColor }}
-              />
-            </ListItemIcon>
-            <Typography
-              sx={{
-                color: (theme) => theme.palette.primary.textcolor,
-                fontFamily: theme.typography.fontFamily[0],
-              }}
-            >
-              Port to KF
-            </Typography>
-          </ListItemButton>
-        </ListItem>
         <ListItem>
           <ListItemButton
             sx={{

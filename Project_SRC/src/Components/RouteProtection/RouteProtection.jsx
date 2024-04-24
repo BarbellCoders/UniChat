@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ClassifyUser,
-  GetLoggedInUserDetails,
-} from "../../Services/User";
+import { classifyUser, getLoggedInUserDetails } from "../../Services/User";
 import { Box, CircularProgress } from "@mui/material";
+import { logoutUser } from "../../Services/User";
 
 function RouteProtection({ children }) {
   const [loading, setLoading] = useState(true);
@@ -12,16 +10,14 @@ function RouteProtection({ children }) {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const userDetails = await GetLoggedInUserDetails();
+      const userDetails = await getLoggedInUserDetails();
       if (!userDetails) {
         router.push("/login");
+      } else if (!localStorage.getItem("studentName")) {
+        logoutUser();
+        router.push("/login");
       } else {
-        const classifiedUser = await ClassifyUser(userDetails.email);
-        if (classifiedUser.type === "Unregistered") {
-          router.push("/login");
-        } else if (classifiedUser.type === "Registered") {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
