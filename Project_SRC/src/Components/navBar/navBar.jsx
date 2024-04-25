@@ -116,7 +116,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 
 const StyledSearchIcon = styled(SearchIcon)(({ theme }) => ({}));
 
-export default function NavBar() {
+export default function NavBar({ projects }) {
   const router = new useRouter();
   const [openChatGPT, setOpenChatGPT] = useState(false);
 
@@ -411,11 +411,7 @@ export default function NavBar() {
                       }}
                       disabled={!isRequestedProjectValid}
                     >
-                      {joiningProject ? (
-                        <CircularProgress size={24} />
-                      ) : (
-                        "Join"
-                      )}
+                      {joiningProject ? <CircularProgress size={24} /> : "Join"}
                     </Button>
                   </DialogActions>
                 </Dialog>
@@ -512,7 +508,11 @@ export default function NavBar() {
         </Snackbar>
       ) : null}
       {openChatGPT && (
-        <ChatGPTBox isOpen={openChatGPT} onClose={handleChatGPTClose} />
+        <ChatGPTBox
+          isOpen={openChatGPT}
+          onClose={handleChatGPTClose}
+          projects={projects}
+        />
       )}
     </ThemeProvider>
   );

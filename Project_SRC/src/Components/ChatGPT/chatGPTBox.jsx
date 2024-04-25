@@ -15,7 +15,9 @@ import SendIcon from "@mui/icons-material/Send";
 import chatGPTLogo from "../../Assets/ChatGPT_icon.png";
 import ClearIcon from "@mui/icons-material/Clear";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
-import PostAddIcon from '@mui/icons-material/PostAdd';
+import ReplyIcon from "@mui/icons-material/Reply";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 import {
   getChatGPTResponse,
   getChatGPTResponseFromDB,
@@ -23,15 +25,24 @@ import {
 } from "../../Services/ChatGPT/ChatGPT_Routines";
 import Image from "next/image";
 import Linkify from "react-linkify";
+import { createDoc } from "../../Services/GoogleDocs_Routines";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import Alert from "@mui/material/Alert";
+import CheckIcon from "@mui/icons-material/Check";
 
-const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
+const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isTextSelected, setIsTextSelected] = useState(false);
   const [selectedText, setSelectedText] = useState("");
-  const name = localStorage.getItem("studentName");
+  const [isReplying, setIsReplying] = useState(false);
+  const [context, setContext] = useState("");
+
+  const [selectedProject, setSelectedProject] = useState("Private");
+  const [isExporting, setIsExporting] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
   const [getMessageHistory, setMessageHistory] = useState([]);
   const prevMessageHistoryRef = useRef();
 
@@ -70,11 +81,11 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
         const docContent = JSON.parse(document).docContent;
         const newMessage = `Summarize this document: ${docName}`;
         const divergentMessages = [...messages];
-        
-        messages.push({ role: name, content: newMessage });
+
+        messages.push({ role: "user", content: newMessage });
 
         divergentMessages.push({
-          role: name,
+          role: "user",
           content: `Summarize this document briefly: ${docContent}`,
         });
 
@@ -91,10 +102,10 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
         const newMessage = `Get resources for this document: ${docName}`;
         const divergentMessages = [...messages];
 
-        messages.push({ role: name, content: newMessage });
+        messages.push({ role: "user", content: newMessage });
 
         divergentMessages.push({
-          role: name,
+          role: "user",
           content: `Get relevant and working internet resources for this document: ${docContent}`,
         });
 
@@ -112,11 +123,11 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
         const divergentMessages = [...messages];
 
         divergentMessages.push({
-          role: name,
+          role: "user",
           content: `Evaluate key concepts as pointers from this document: ${docContent}`,
         });
 
-        messages.push({ role: name, content: newMessage });
+        messages.push({ role: "user", content: newMessage });
 
         const keyConcepts = await sendToChatGPTandGetResponse(
           divergentMessages
@@ -133,19 +144,20 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
   }, [chatGPTOperation]);
 
   useEffect(() => {
-    console.log(messages.length, localStorage.getItem("projectID"));
-    if (localStorage.getItem("projectID") !== "null" && messages.length > 0) {
-      const projectID = localStorage.getItem("projectID");
+    console.log("Storing chat to project before: " + selectedProject);
+    if (selectedProject !== "Private" && messages.length > 0) {
+      console.log(
+        "Storing chat to project after: " +
+          selectedProject.projectName +
+          "messages length is " +
+          messages.length
+      );
+      const projectID = selectedProject._id;
       const databasename = "universityatalbanyDB";
 
       // Define an async function
       const updateChat = async () => {
-        const response = await storeChatGPTResponse(
-          projectID,
-          databasename,
-          messages
-        );
-        console.log(response);
+        await storeChatGPTResponse(projectID, databasename, messages);
       };
 
       // Call the async function
@@ -158,9 +170,12 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
   }, []);
 
   useEffect(() => {
-    if (localStorage.getItem("projectID") !== null) {
-      const projectID = localStorage.getItem("projectID");
+    console.log("Selected Project: ", selectedProject._id);
+    if (selectedProject !== "Private") {
+      const projectID = selectedProject._id;
       const databasename = "universityatalbanyDB";
+
+      console.log("Getting chat from project: ", selectedProject._id);
 
       // Define an async function
       const getChat = async () => {
@@ -168,32 +183,22 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
           projectID,
           databasename
         );
-        console.log(response);
-        setMessageHistory(response);
-        console.log(getMessageHistory);
+
+        if (response) {
+          setMessageHistory(response);
+          setMessages(response);
+        } else {
+          setMessageHistory([]);
+          setMessages([]);
+        }
+
+        console.log("Messages from DB: ", response);
       };
 
       // Call the async function
       getChat();
     }
-  }, []);
-
-  useEffect(() => {
-    const iterableMessageHistory = Array.isArray(getMessageHistory)
-      ? getMessageHistory
-      : [];
-    if (
-      iterableMessageHistory.length > 0 &&
-      JSON.stringify(prevMessageHistoryRef.current) !==
-        JSON.stringify(iterableMessageHistory)
-    ) {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        ...iterableMessageHistory,
-      ]);
-      prevMessageHistoryRef.current = iterableMessageHistory;
-    }
-  }, [getMessageHistory]);
+  }, [selectedProject]);
 
   const handleCloseChatGPT = () => {
     setIsVisible(false);
@@ -210,10 +215,17 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
   const handleSendMessage = async () => {
     setIsLoading(true);
     if (newMessage.trim() !== "") {
-      messages.push({ role: name, content: newMessage });
+      let finalMessage = newMessage;
+      if (isReplying) {
+        finalMessage =
+          "You said '" + context + "' so answer this: " + newMessage;
+        setIsReplying(false);
+        setContext("");
+      }
+      console.log(finalMessage);
+      messages.push({ role: "user", content: finalMessage });
 
       const response = await sendToChatGPTandGetResponse(messages);
-
       messages.push({ role: "assistant", content: response });
 
       if (
@@ -232,6 +244,25 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
       setIsLoading(false);
       setNewMessage("");
     }
+    setIsExporting(true);
+    setIsExporting(true);
+  };
+
+  const handleExport = async () => {
+    const documentName = "ChatGPT_Transcript_" + new Date().toISOString();
+    const content = messages
+      .map(
+        (message, index) =>
+          (message.role === "assistant" ? "Assistant: " : "User: ") +
+          message.content +
+          ((index + 1) % 2 === 0 ? "\n" : "")
+      )
+      .join("\n");
+    console.log(content);
+    const datareturned = await createDoc(documentName, content);
+    console.log(datareturned);
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
   };
 
   return (
@@ -250,8 +281,8 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
               style={{
                 position: "relative",
                 borderTop: 10,
-                width: 350,
-                height: 500,
+                width: 500,
+                height: 600,
                 backgroundColor: (theme) => theme.palette.primary.main,
                 boxShadow: "0px 4px 10px #699385",
               }}
@@ -259,51 +290,141 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
             >
               <Box
                 sx={{
-                  position: "relative",
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
+                  width: "100%",
+                  height: 50,
                   backgroundColor: "#1A1D1F",
                   color: (theme) => theme.palette.primary.whites,
                   borderRadius: "5px 5px 0 0",
                   padding: "0 10px",
+                  p: 1,
+                  flexDirection: "row",
                 }}
                 className="drag-handle"
               >
                 <IconButton
                   onClick={handleCloseChatGPT}
                   sx={{
-                    position: "absolute",
-                    left: 0,
                     color: (theme) => theme.palette.primary.whites,
                     "&:hover": {
                       backgroundColor: "transparent",
                     },
+                    position: "absolute",
+                    left: 10,
                   }}
                 >
                   <CloseIcon />
                 </IconButton>
-                <IconButton color="inherit" disabled>
-                  <Image
-                    src={chatGPTLogo}
-                    alt="ChatGPT Icon"
-                    width={24}
-                    height={24}
-                  />
-                </IconButton>
-                <Typography
-                  variant="h4"
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    position: "absolute",
+                  }}
+                >
+                  <IconButton color="inherit" disabled>
+                    <Image
+                      src={chatGPTLogo}
+                      alt="ChatGPT Icon"
+                      width={24}
+                      height={24}
+                    />
+                  </IconButton>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      color: (theme) => theme.palette.primary.whites,
+                      fontFamily: "'Kode Mono', monospace",
+                      fontSize: 20,
+                    }}
+                    padding={1}
+                  >
+                    ChatGPT
+                  </Typography>
+                </Box>
+                <Select
+                  size="small"
+                  value=""
+                  variant="outlined"
+                  onChange={(event) => {
+                    if (event.target.value === "Private") {
+                      setSelectedProject("Private");
+                    } else {
+                      setSelectedProject(event.target.value);
+                    }
+                  }}
+                  sx={{
+                    position: "absolute",
+                    right: 130,
+
+                    border: "none", // Add this line
+                    "&:focus": {
+                      border: "none", // Add this line
+                    },
+                  }}
+                >
+                  <MenuItem value="Private">
+                    <Typography
+                      sx={{
+                        color: (theme) => theme.palette.primary.whites,
+                        fontFamily: "'Kode Mono', monospace",
+                        fontSize: 10,
+                      }}
+                    >
+                      Private
+                    </Typography>
+                  </MenuItem>
+                  {projects.map((project) => (
+                    <MenuItem value={project}>
+                      <Typography
+                        sx={{
+                          color: (theme) => theme.palette.primary.whites,
+                          fontFamily: "'Kode Mono', monospace",
+                          fontSize: 10,
+                        }}
+                      >
+                        {project.projectName}
+                      </Typography>
+                    </MenuItem>
+                  ))}
+                </Select>
+                <IconButton
+                  onClick={handleExport}
                   sx={{
                     color: (theme) => theme.palette.primary.whites,
-                    fontFamily: "'Kode Mono', monospace",
-                    fontSize: 20,
+                    "&:hover": {
+                      backgroundColor: "transparent",
+                    },
+                    position: "absolute",
+                    right: 10,
                   }}
-                  padding={1}
+                  disabled={!isExporting}
                 >
-                  ChatGPT
+                  <FileDownloadIcon />
+                </IconButton>
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: (theme) => theme.palette.primary.dark,
+                  color: (theme) => theme.palette.primary.whites,
+                  padding: "0 10px",
+                  p: 1,
+                }}
+              >
+                <Typography sx={{ fontFamily: "'Kode Mono', monospace" }}>
+                  {selectedProject.projectName
+                    ? selectedProject.projectName
+                    : "Private"}
                 </Typography>
               </Box>
-              {messages.length === 0 ? (
+              {messages?.length === 0 ? (
                 <Box
                   sx={{
                     justifyContent: "center",
@@ -312,7 +433,7 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
                     mt: 15,
                   }}
                 >
-                  <Typography variant="h5">Ask your first question</Typography>
+                  <Typography variant="h4">Ask your first question</Typography>
                 </Box>
               ) : (
                 <Box
@@ -333,12 +454,14 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
                       key={index}
                       sx={{
                         backgroundColor:
-                          message.role !=="assistant" ? "#1A1D1F" : "#699385",
+                          message.role !== "assistant" ? "#1A1D1F" : "#699385",
                         p: 1,
                         borderRadius: 1,
                         m: 1,
                         alignSelf:
-                          message.role !=="assistant" ? "flex-end" : "flex-start",
+                          message.role !== "assistant"
+                            ? "flex-end"
+                            : "flex-start",
                         maxWidth: "70%",
                         userSelect: "text",
                       }}
@@ -379,10 +502,11 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
                     bottom: 60,
                     justifyContent: "center",
                     alignItems: "center",
+                    width: "95%",
                     display: "flex",
-                    width: 320,
                     height: 40,
                     ml: 2,
+                    mt: 33,
                     border: "1px solid #000",
                     borderRadius: 2,
                     backgroundColor: "#ffffff",
@@ -438,11 +562,10 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
                   <IconButton
                     color="primary"
                     onClick={() => {
-                      setNewMessage(
-                        "Using this as context: " +
-                          selectedText +
-                          " address this: "
-                      );
+                      setSelectedText("");
+                      setIsTextSelected(false);
+                      setIsReplying(true);
+                      setContext(selectedText);
                     }}
                     size="small"
                   >
@@ -457,23 +580,87 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
                         mr: 1,
                       }}
                     >
-                      Create Context
+                      Reply
                     </Typography>
-                    <PostAddIcon />
+                    <ReplyIcon />
                   </IconButton>
                 </Box>
+              )}
+              {isReplying && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 60,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    display: "flex",
+                    width: "95%",
+                    height: 40,
+                    overflow: "hidden",
+                    ml: 2,
+                    mt: 33,
+                    p: 1,
+                    borderRadius: 2,
+                    backgroundColor: (theme) => theme.palette.primary.rare,
+                    zIndex: 10,
+                  }}
+                >
+                  <ReplyIcon fontSize="small" />
+
+                  <Typography
+                    sx={{
+                      color: (theme) => theme.palette.primary.textcolor,
+                      fontFamily: "'Kode Mono', monospace",
+                      fontSize: 14,
+                      flexGrow: 1,
+                      fontSize: 10,
+                      overflow: "scroll",
+                      ml: 1,
+                      mr: 1,
+                    }}
+                  >
+                    {context.length > 100
+                      ? `${context.substring(0, 100)}...`
+                      : context}
+                  </Typography>
+                  <IconButton>
+                    <ClearIcon
+                      onClick={() => {
+                        setIsReplying(false);
+                        setContext("");
+                      }}
+                      fontSize="small"
+                    />
+                  </IconButton>
+                </Box>
+              )}
+              {showAlert && (
+                <Alert
+                  icon={<CheckIcon fontSize="inherit" />}
+                  severity="success"
+                  sx={{
+                    mt: 4,
+                    ml: 4,
+                    mr: 4,
+                    borderRadius: 2,
+                  }}
+                >
+                  Here is a gentle confirmation that your transcript is saved to
+                  Google Docs
+                </Alert>
               )}
               <Box
                 sx={{
                   position: "absolute",
                   bottom: 10,
-                  justifyContent: "flex-start",
+                  justifyContent: "center",
                   alignItems: "center",
+                  alignContent: "center",
                   display: "flex",
                   mt: 33,
-                  width: 320,
-                  height: 40,
                   ml: 2,
+                  width: "95%",
+                  height: 40,
                   borderRadius: 2,
                   backgroundColor: "#699385",
                   color: (theme) => theme.palette.primary.textcolor,
@@ -494,8 +681,7 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose }) => {
                     fontFamily: "'Kode Mono', monospace",
                     fontSize: 14,
                     flexGrow: 1,
-                    ml: 1,
-                    mr: 1,
+                    p: 1,
                   }}
                   endAdornment={
                     <InputAdornment position="end">
