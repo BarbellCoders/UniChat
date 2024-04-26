@@ -43,8 +43,6 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
   const [selectedProject, setSelectedProject] = useState("Private");
   const [isExporting, setIsExporting] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-  const [getMessageHistory, setMessageHistory] = useState([]);
-  const prevMessageHistoryRef = useRef();
 
   const chatGPTBoxRef = useRef();
 
@@ -166,16 +164,9 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
   }, [messages.length]);
 
   useEffect(() => {
-    prevMessageHistoryRef.current = getMessageHistory;
-  }, []);
-
-  useEffect(() => {
-    console.log("Selected Project: ", selectedProject._id);
     if (selectedProject !== "Private") {
       const projectID = selectedProject._id;
       const databasename = "universityatalbanyDB";
-
-      console.log("Getting chat from project: ", selectedProject._id);
 
       // Define an async function
       const getChat = async () => {
@@ -185,10 +176,8 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
         );
 
         if (response) {
-          setMessageHistory(response);
           setMessages(response);
         } else {
-          setMessageHistory([]);
           setMessages([]);
         }
 
@@ -197,6 +186,8 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
 
       // Call the async function
       getChat();
+    } else {
+      setMessages([]);
     }
   }, [selectedProject]);
 
