@@ -184,13 +184,17 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
         } else {
           setMessages([]);
         }
-
-        console.log("Messages from DB: ", response);
       };
 
       // Call the async function
       getChat();
-    } else if (messages.length === 0) {
+    } else if (
+      !messages[0].content.startsWith(
+        "Summarize this document:" ||
+          "Get resources for this document:" ||
+          "Evaluate key concepts from this document:"
+      )
+    ) {
       setMessages([]);
     }
   }, [selectedProject]);
