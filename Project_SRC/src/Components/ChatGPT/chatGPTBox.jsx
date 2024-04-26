@@ -80,6 +80,8 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
         const newMessage = `Summarize this document: ${docName}`;
         const divergentMessages = [...messages];
 
+        console.log("New Message: " + newMessage);
+
         messages.push({ role: "user", content: newMessage });
 
         divergentMessages.push({
@@ -90,6 +92,8 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
         const summary = await sendToChatGPTandGetResponse(divergentMessages);
 
         messages.push({ role: "assistant", content: summary });
+
+        console.log("messages are: " + messages);
 
         setIsLoading(false);
         setNewMessage("");
@@ -186,7 +190,7 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
 
       // Call the async function
       getChat();
-    } else {
+    } else if (messages.length === 0) {
       setMessages([]);
     }
   }, [selectedProject]);
@@ -213,7 +217,6 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
         setIsReplying(false);
         setContext("");
       }
-      console.log(finalMessage);
       messages.push({ role: "user", content: finalMessage });
 
       const response = await sendToChatGPTandGetResponse(messages);
