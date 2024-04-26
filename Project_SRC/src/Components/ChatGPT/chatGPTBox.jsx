@@ -39,6 +39,7 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
   const [selectedText, setSelectedText] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   const [context, setContext] = useState("");
+  const [privateMessages, setPrivateMessages] = useState([]);
 
   const [selectedProject, setSelectedProject] = useState("Private");
   const [isExporting, setIsExporting] = useState(false);
@@ -146,14 +147,7 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
   }, [chatGPTOperation]);
 
   useEffect(() => {
-    console.log("Storing chat to project before: " + selectedProject);
     if (selectedProject !== "Private" && messages.length > 0) {
-      console.log(
-        "Storing chat to project after: " +
-          selectedProject.projectName +
-          "messages length is " +
-          messages.length
-      );
       const projectID = selectedProject._id;
       const databasename = "universityatalbanyDB";
 
@@ -164,6 +158,8 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
 
       // Call the async function
       updateChat();
+    } else if (selectedProject === "Private") {
+      setPrivateMessages(messages);
     }
   }, [messages.length]);
 
@@ -188,14 +184,8 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
 
       // Call the async function
       getChat();
-    } else if (
-      !messages[0].content.startsWith(
-        "Summarize this document:" ||
-          "Get resources for this document:" ||
-          "Evaluate key concepts from this document:"
-      )
-    ) {
-      setMessages([]);
+    } else if (selectedProject === "Private") {
+      setMessages(privateMessages);
     }
   }, [selectedProject]);
 
@@ -237,6 +227,10 @@ const ChatGPTBox = ({ chatGPTOperation, document, onClose, projects }) => {
               "Correction from UniChatBot:\n Saturn, holds the title for the planet with the most moons in our solar system. Recently, **62 new moons** were discovered around Saturn, bringing its official total to **145**.\n\n In contrast, Jupiter, which briefly overtook Saturn, has **95** moons that have been formally designated by the International Astronomical Union (IAU) 🌟🪐🌕\n Remember, this information is specific to our solar system. When we venture beyond, the universe is teeming with countless other planets, each with its own unique set of moons and mysteries. 🌌 \nSource:- Jupiter now has 92 moons, surpassing Saturn for record - Astronomy Magazine. https://www.astronomy.com/\nscience/jupiter-now-has-92-moons-surpassing-saturn-for-record/.",
           },
         ]);
+      }
+
+      if (selectedProject === "Private") {
+        setPrivateMessages(messages);
       }
 
       setIsLoading(false);
